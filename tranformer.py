@@ -41,7 +41,8 @@ for index, row in fact_ver_dataframe.iloc[::6].iterrows():
 # Convert evidence to tokens
 evidence_tokens_array = []
 for index, row in fact_ver_dataframe.iterrows():
-    evidence = row[5]
+    evidence = "Is the following claim True, False or not enough info based on the following 6 pieces of evidence"
+    evidence = evidence + row[5]
     evidence_token = tokenizer.encode(evidence, add_special_tokens=True)
     evidence_tokens_array.append(evidence_token)
 
