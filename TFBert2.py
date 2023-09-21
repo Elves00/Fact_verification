@@ -1,11 +1,18 @@
-from transformers import DataCollatorWithPadding,Trainer, AutoTokenizer, BertForSequenceClassification, TFTrainingArguments, TFTrainer, TFBertModel, Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Seq2SeqTrainer
+from transformers import DataCollatorWithPadding,Trainer, AutoTokenizer, TFTrainingArguments, TFTrainer, TFBertModel, Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Seq2SeqTrainer
 import pandas as pd
-from sklearn.metrics import accuracy_score, f1_score
 from datasets import Dataset
-
-from datasets import load_dataset
-
+import evaluate
+import numpy as np
 from huggingface_hub import notebook_login
+from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
+from transformers import TFAutoModelForSequenceClassification
+
+from transformers import create_optimizer
+import tensorflow as tf
+from transformers.keras_callbacks import KerasMetricCallback
+
+from transformers.keras_callbacks import PushToHubCallback
+
 
 access_token = "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"
 notebook_login()
@@ -82,12 +89,8 @@ def preprocess_function(token):
 tokenized_dataset = dataset.map(preprocess_function, batched=True)
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="pt")
 
-
-import evaluate
-
 accuracy = evaluate.load("accuracy")
 
-import numpy as np
 
 
 def compute_metrics(eval_pred):
@@ -100,14 +103,13 @@ id2label = {0: "FALSE", 1: "NOT_ENOUGH_INFO", 2: "TRUE"}
 label2id = {"FALSE": 0, "NOT_ENOUGH_INFO": 1, "TRUE": 2}
 
 # model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
 
 model = AutoModelForSequenceClassification.from_pretrained(
     "distilbert-base-uncased", num_labels=3, id2label=id2label, label2id=label2id, token=access_token
 )
 
 training_args = TrainingArguments(
-    output_dir="my_awesome_model",
+    output_dir="training_model",
     learning_rate=2e-5,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
@@ -132,3 +134,43 @@ trainer = Trainer(
 trainer.train()
 
 trainer.push_to_hub()
+
+
+batch_size = 16
+num_epochs = 5
+batches_per_epoch = len(tokenized_imdb["train"]) // batch_size
+total_train_steps = int(batches_per_epoch * num_epochs)
+optimizer, schedule = create_optimizer(init_lr=2e-5, num_warmup_steps=0, num_train_steps=total_train_steps)
+
+
+model = TFAutoModelForSequenceClassification.from_pretrained(
+    "distilbert-base-uncased", num_labels=3, id2label=id2label, label2id=label2id
+)
+
+tf_train_set = model.prepare_tf_dataset(
+    tokenized_dataset["train"],
+    shuffle=True,
+    batch_size=16,
+    collate_fn=data_collator,
+)
+
+tf_validation_set = model.prepare_tf_dataset(
+    tokenized_dataset["test"],
+    shuffle=False,
+    batch_size=16,
+    collate_fn=data_collator,
+)
+
+
+model.compile(optimizer=optimizer)  # No loss argument!
+
+metric_callback = KerasMetricCallback(metric_fn=compute_metrics, eval_dataset=tf_validation_set)
+
+push_to_hub_callback = PushToHubCallback(
+    output_dir="validation_model",
+    tokenizer=tokenizer,
+)
+
+callbacks = [metric_callback, push_to_hub_callback]
+
+model.fit(x=tf_train_set, validation_data=tf_validation_set, epochs=3, callbacks=callbacks)
