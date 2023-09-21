@@ -1,0 +1,11 @@
+/bert_classification
+/bert2bert_finetuned
+/logs
+/model
+/my_awesome_model
+/training_master_model
+/training_model
+/validation_model
+/.ipynb_checkpoints
+/.env
+/__pycache__
