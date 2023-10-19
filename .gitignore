@@ -7,6 +7,16 @@
 /training_master_model
 /training_model
 /validation_model
+/bert_seq_training_model
+/bert_seq_training_model_model_1
+/bert_seq_training_model_model_2
+/bert_seq_training_model_model_3
+/bert_seq_training_model_model_4
+/deberta_seq
+/master_bert_seq_training_model
+/training_bert_model
+/bert_seq_training_model_4
+/training_master_bert_model
 /.ipynb_checkpoints
 /.env
 /__pycache__
@@ -18,3 +28,12 @@ FactVerBig2.xlsx
 Master_Claims.csv
 Master_Test.csv
 Scientific approach.xlsx
+<<<<<<< HEAD
+~$Annotator_Agreement.xlsx
+~$Claims.xlsx
+Annotator_Agreement.xlsx
+Claims.xlsx
+FactVer1.3.xlsx
+Master.xlsx
+=======
+>>>>>>> bba1cb46798fd387dd0eefbd2a90873006233c62

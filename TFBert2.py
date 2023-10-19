@@ -1,17 +1,11 @@
-from transformers import DataCollatorWithPadding,Trainer, AutoTokenizer, TFTrainingArguments, TFTrainer, TFBertModel, Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Seq2SeqTrainer
+from transformers import TFAutoModelForSequenceClassification, DataCollatorWithPadding, AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
 import pandas as pd
 from datasets import Dataset
 import evaluate
 import numpy as np
 from huggingface_hub import notebook_login
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
-from transformers import TFAutoModelForSequenceClassification
-
 from transformers import create_optimizer
-import tensorflow as tf
-from transformers.keras_callbacks import KerasMetricCallback
-
-from transformers.keras_callbacks import PushToHubCallback
+from transformers.keras_callbacks import KerasMetricCallback, PushToHubCallback
 
 
 access_token = "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"
@@ -69,7 +63,7 @@ label_mapping = {'F': 0, 'N': 1, 'T': 2}
 fact_ver_dataframe['label'] = fact_ver_dataframe['label'].map(label_mapping)
 
 # Set up tokenizer
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased", tokenizer_options={"truncation": True , "padding": True})
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased", tokenizer_options={"truncation": True , "padding": True})
 
 # Create a Pandas DataFrame
 dataset = Dataset.from_pandas(fact_ver_dataframe)
@@ -91,8 +85,6 @@ data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="pt"
 
 accuracy = evaluate.load("accuracy")
 
-
-
 def compute_metrics(eval_pred):
     predictions, labels = eval_pred
     predictions = np.argmax(predictions, axis=1)
@@ -102,14 +94,12 @@ def compute_metrics(eval_pred):
 id2label = {0: "FALSE", 1: "NOT_ENOUGH_INFO", 2: "TRUE"}
 label2id = {"FALSE": 0, "NOT_ENOUGH_INFO": 1, "TRUE": 2}
 
-# model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
-
 model = AutoModelForSequenceClassification.from_pretrained(
     "distilbert-base-uncased", num_labels=3, id2label=id2label, label2id=label2id, token=access_token
 )
 
 training_args = TrainingArguments(
-    output_dir="training_model",
+    output_dir="distil_bert_model",
     learning_rate=2e-5,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
@@ -167,7 +157,7 @@ model.compile(optimizer=optimizer)  # No loss argument!
 metric_callback = KerasMetricCallback(metric_fn=compute_metrics, eval_dataset=tf_validation_set)
 
 push_to_hub_callback = PushToHubCallback(
-    output_dir="validation_model",
+    output_dir="distil_bert_validation_model",
     tokenizer=tokenizer,
 )
 
